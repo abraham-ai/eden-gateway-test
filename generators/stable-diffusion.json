@@ -1,0 +1,15 @@
+{
+  "mode": "generate",
+  "text_input": "hello world",
+  "steps": 50,
+  "ddim_eta": 0.0,
+  "n_samples": 1,
+  "height": 512,
+  "width": 512,
+  "C": 4,
+  "f": 8,
+  "scale": 12.5
+}
+
+
+

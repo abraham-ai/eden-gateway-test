@@ -1,0 +1,9 @@
+{
+  "model_name": "imagenet",
+  "clip_model_options": [["ViT-B/32", "ViT-B/16", "RN50"]],
+  "width": 1280,
+  "height": 720,
+  "num_octaves": 3,
+  "octave_scale": 2.0,
+  "num_iterations": [300, 400, 500]
+}
