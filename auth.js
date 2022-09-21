@@ -1,7 +1,6 @@
 import ethers from "ethers";
 import jwt from "jsonwebtoken";
-import {PORT, REPLICATE_API_TOKEN, jwtSecret, generators, minio_url, bucket_name} from "./constants.js"
-
+import {PORT, REPLICATE_API_TOKEN, jwtSecret, generators, minio_url, minio_bucket} from "./constants.js"
 
 
 export function requestAuthToken(req, res) {
@@ -32,33 +31,10 @@ export function isAuth(req, res) {
   res.status(200).json({token});
 };
 
-
 export async function authenticate(req, res, next) {
   if (process.env.GATEWAY_INTERNAL) {
     return next();
-  } 
-
-  if (req.body.api_key) {
-    //return await checkAPIKey(req, res, next);    
-  } 
-  else {
-    return await verifyJWT(req, res, next);
   }
-}
-
-
-const decodeUserFromToken = async (token) => {
-  try {
-    const decoded = jwt.verify(token, jwtSecret);
-    const user = {user_id: decoded.id, user_type: decoded.id_type};  
-    return user;
-  } catch (exceptionVar) {
-    return null;
-  }
-};
-
-
-const verifyJWT = async (req, res, next) => {
   const {token} = req.body;
   if (!token) {
     return res.status(401).send("No token provided");
@@ -72,5 +48,21 @@ const verifyJWT = async (req, res, next) => {
     return res.status(401).send(error.message);
   }
   return next();
+}
+
+export const decodeUserFromToken = async (token) => {
+  try {
+    const decoded = jwt.verify(token, jwtSecret);
+    const user = {user_id: decoded.id, user_type: decoded.id_type};  
+    return user;
+  } catch (exceptionVar) {
+    return null;
+  }
 };
 
+// export default {
+//   requestAuthToken, 
+//   isAuth, 
+//   authenticate, 
+//   decodeUserFromToken
+// }
