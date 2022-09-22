@@ -1,13 +1,14 @@
 import Minio from 'minio';
 import {MongoClient} from 'mongodb';
-import {mongo_url, db_name} from './constants.js'
-import {minio_url, minio_access_key, minio_secret_key} from './constants.js'
 
-const mongo = await MongoClient.connect(mongo_url);
-export const db = mongo.db(db_name);
+import {MONGO_URL, MONGO_DB_NAME} from './constants.js'
+import {MINIO_URL, MINIO_ACCESS_KEY, MINIO_SECRET_KEY} from './constants.js'
+
+const mongo = await MongoClient.connect(MONGO_URL);
+export const db = mongo.db(MONGO_DB_NAME);
 
 export const minio = new Minio.Client({
-  endPoint: minio_url,
-  accessKey: minio_access_key,
-  secretKey: minio_secret_key
+  endPoint: MINIO_URL,
+  accessKey: MINIO_ACCESS_KEY,
+  secretKey: MINIO_SECRET_KEY
 });

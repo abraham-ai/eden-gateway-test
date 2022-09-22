@@ -1,17 +1,17 @@
 import ethers from "ethers";
 import jwt from "jsonwebtoken";
-import {PORT, REPLICATE_API_TOKEN, jwtSecret, generators, minio_url, minio_bucket} from "./constants.js"
+import {JWT_SECRET} from "./constants.js"
 
 
 export function requestAuthToken(req, res) {
-  const {message, signature, id, id_type} = req.body;
-  console.log(message, signature, id, id_type)
+  const {message, signature, userId, userType} = req.body;
+  console.log(message, signature, userId, userType);
   try {
     const recovered = ethers.utils.verifyMessage(message, signature);
     console.log(recovered)
-    if (id.toLowerCase() === recovered.toLowerCase()) {
-      const credentials = {id: id, id_type: id_type};
-      const authToken = jwt.sign(credentials, jwtSecret, {expiresIn: "30m"});
+    if (userId.toLowerCase() === recovered.toLowerCase()) {
+      const credentials = {userId: userId, userType: userType};
+      const authToken = jwt.sign(credentials, JWT_SECRET, {expiresIn: "90m"});
       res.status(200).json({authToken});
     } else {      
       res.status(401).send("Mismatched address and signature");
@@ -24,7 +24,7 @@ export function requestAuthToken(req, res) {
 export function isAuth(req, res) {
   const {token} = req.body;
   try {
-    jwt.verify(token, jwtSecret);
+    jwt.verify(token, JWT_SECRET);
   } catch (error) {
     return res.status(401).send(error.message);
   }
@@ -50,12 +50,13 @@ export async function authenticate(req, res, next) {
   return next();
 }
 
-export const decodeUserFromToken = async (token) => {
+export function decodeUserFromToken(token) {
   try {
-    const decoded = jwt.verify(token, jwtSecret);
-    const user = {user_id: decoded.id, user_type: decoded.id_type};  
+    const decoded = jwt.verify(token, JWT_SECRET);
+    const user = {userId: decoded.userId, userType: decoded.userType};  
     return user;
-  } catch (exceptionVar) {
+  } catch (error) {
+    console.log(error.message);
     return null;
   }
 };

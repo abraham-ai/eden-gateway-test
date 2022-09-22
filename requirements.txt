@@ -1,5 +1,0 @@
-uvicorn
-fastapi
-fastapi_jwt
-replicate
-pymongo

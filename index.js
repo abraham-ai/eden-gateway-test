@@ -1,36 +1,24 @@
+
+
+// TODO
+// authenticate discord user
 // db -> instanceconfig and user config
+// observability, error handling
 // admin/addtokens
 // stats
-// observability
-// error handling
 
 import express from 'express';
 import url from 'url';
 
-import {PORT, generators, minio_bucket} from "./constants.js"
+import {PORT, MINIO_BUCKET, generators} from "./constants.js"
+import * as replicate from "./replicate.js"
+import * as auth from './auth.js';
+import * as utils from './utils.js'
 import {db, minio} from "./db.js"
-import {submit, download} from "./replicate.js"
-import {authenticate, requestAuthToken, isAuth} from './auth.js';
-import {getAllPropertiesValid, getAddressNumTransactions, loadJSON, writeJsonToFile, sha256} from './utils.js'
 
 
 
-const instanceConfig2 = {
-  mode: "interpolate",
-  interpolation_texts: "Smurfs hijacking a car|A robot putting on makeup|An Ice hockey player",interpolation_seeds: "5|6|9",
-  loop:false,
-  n_interpolate:3,
-  text_input:"An ice hockey player playing goaltender",translate_z:5, 
-  animation_mode:"3D"
-}
-
-const instanceConfig3 = {
-  mode: "generate",
-  seed: 1289325,
-  text_input: "Einstein having a dream, black and white sketch"
-}
-
-function getCost(user, generator_name, config) {
+function getCost(generator_name, config) {
   let cost = 0
   if (generator_name == 'stable-diffusion') {
     if (config.mode == 'generate') {
@@ -46,42 +34,38 @@ function getCost(user, generator_name, config) {
 }
 
 
-
 async function handleGeneratorRequest(req, res) {
   const {generator_name, config, application, metadata, token} = req.body;
-  //const user = decodeUserFromToken(token);
-  const user = {
-    user_id: "___",
-    user_type: "discord"
-  };
-
+  const userCredentials = auth.decodeUserFromToken(token);
+  
   // get user entry in credits collection
-  const userCredits = await db.collection('credits').findOne(user);
-
-  // greet user; if unrecognized wallet has 3 txs, give free credits
-  if (!userCredits && user.user_type == "ethereum") {
-    const numTransactions = getAddressNumTransactions(user.user_id);
-    if (numTransactions >= 3) {
-      await db.collection('credits').insertOne({
-        user_id: user.user_id,
-        user_type: user.user_type,
-        balance: 10
-      });
+  let user = await db.collection('users').findOne(userCredentials);
+  
+  // if user is not found, greet new user
+  if (!user) {
+    if (userCredentials.userType == "ethereum") {
+      const numTransactions = await utils.getAddressNumTransactions(userCredentials.userId);
+      if (numTransactions < 0) {
+        return res.status(401).send('User has no credits, and ineligible for free credits');
+      }
     } 
-    else {
-      return res.status(401).send('User has no credits, and ineligible for free credits');
-    }
+    // create new user, give free credits
+    const newUser = await db.collection('users').insertOne({
+      userId: userCredentials.userId,
+      userType: userCredentials.userType,
+      balance: 100
+    });    
+    user = await db.collection('users').findOne(newUser.insertedId);
   }
   
+  // get generator, config, and cost
   let generator = generators[generator_name]
-  const defaultConfig = loadJSON(generator.configFile);
-  const cost = getCost(user, generator_name, config)
-
-  if (!getAllPropertiesValid(defaultConfig, config)) {
+  const defaultConfig = utils.loadJSON(generator.configFile);
+  if (!utils.getAllPropertiesValid(defaultConfig, config)) {
     return res.status(400).send('Config contains unrecognized fields');
   }
-
   let instanceConfig = Object.assign(defaultConfig, config);
+  const cost = getCost(generator_name, instanceConfig)
   
   // gateway
   const rateLimitHit = false; // Todo
@@ -89,44 +73,40 @@ async function handleGeneratorRequest(req, res) {
     return res.status(401).send('Rate limit hit, please try again later');
   }
 
-  if (cost > userCredits.balance) {
+  if (cost > user.balance) {
     return res.status(401).send('Not enough credits remaining');
   }
 
-  // you shall pass
-  const {task, generator_data} = await submit(generator, instanceConfig3)
+  // you shall pass; submit task to provider
+  const {task, generator_data} = await replicate.submit(generator, instanceConfig)
   
-  // job failed failed
   if (task.status == 'failed') {
     res.status(500).send("Server error");
   }
 
-  // create request entry
+  // create request document
   const application_data = {
     name: application, 
     metadata: metadata
   }  
   if (application == "eden.art") {
     application_data.stats = {
-      praise_count: 0,
-      burn_count: 0,
-      praise_addresses: [''],
-      burn_addresses: ['']
+      praise_count: 0, burn_count: 0, praise_addresses: [''], burn_addresses: ['']
     }
   } 
 
   await db.collection('requests').insertOne({
     timestamp: new Date().getTime(),
-    user: user,
+    user: user._id,
     application: application_data,
     generator: generator_data,
-    config: instanceConfig3,  // text_input/title/name
+    config: instanceConfig,
     cost: cost,
     status: 'pending'
   });
   
-  await db.collection('credits').updateOne({_id: userCredits._id}, {
-    $set: {balance: userCredits.balance - cost}
+  await db.collection('users').updateOne({_id: user._id}, {
+    $set: {balance: user.balance - cost}
   });
 
   res.status(200).send(task.id);
@@ -134,52 +114,48 @@ async function handleGeneratorRequest(req, res) {
 
 
 async function receiveGeneratorUpdate(req, res) {
-  //writeJsonToFile("./__body.json", req.body)
-  //writeJsonToFile("./_header.json", req.headers)
-  const {id, completed_at, output} = req.body;
+  utils.writeJsonToFile("./__body.json", req.body)
+  const {id, status, completed_at, output} = req.body;
   
   // get the original request
   const request = await db.collection('requests').findOne({"generator.task_id": id});
   if (!request) {
     return res.status(500).send(`Request ${id} not found`);
   }
-  // writeJsonToFile("./__request.json", request)
   
   // verify sender
   const webhookSecret = url.parse(req.url, true).query.secret;
   if (webhookSecret != request.generator.secret) {
     return res.status(500).send("Wrong secret token");
   }
-  // writeJsonToFile("./__webhook.json", {wh: webhookSecret})
 
-  // save results
-  if (output) {
-    // writeJsonToFile("./__output1.json", {h:5})
-    const lastOutputUrl = output.pop();
-    // writeJsonToFile("./__outputa.json", {h: lastOutputUrl})
-    const image = await download(lastOutputUrl);
-    const base64image = Buffer.from(image.data, "base64");
-    const sha = sha256(base64image);
-    // writeJsonToFile("./__outputb.json", {h: sha})
-    const metadata = {'Content-Type': 'image/jpeg', 'SHA': sha};
-    const status = completed_at ? 'complete' : 'running';
-    // writeJsonToFile("./__outputc.json", {d: status})
-    // writeJsonToFile("./__output.json", {sha: sha, metadata: metadata, status: status})
-    await minio.putObject(minio_bucket, sha, base64image, metadata);
+  if (status == "failed") {
     await db.collection('requests').updateOne({_id: request._id}, {
-      $set: {status: status, progress: 50, output: sha}
+      $set: {status: "failed", error: req.body.error}
     });
   }
-  // else {
-  //   writeJsonToFile("./__output2.json", {h:0})
-  // }
-  // writeJsonToFile("./__end.json", {hello: 'world'})
+  else {
+    if (output) {
+      const lastOutputUrl = output.slice(-1)[0];
+      const image = await replicate.download(lastOutputUrl);
+      const fileType = utils.getFileType(lastOutputUrl);
+      const base64image = Buffer.from(image.data, "base64");
+      const sha = utils.sha256(base64image);
+      const metadata = {'Content-Type': `image/${fileType}`, 'SHA': sha};
+      let update = {output: sha};
+      if (completed_at) {
+        update.status = 'complete';
+      } else {
+        update.status = 'running';
+        update.progress = replicate.getProgress(input, output);
+      }
+      await minio.putObject(MINIO_BUCKET, sha, base64image, metadata);
+      await db.collection('requests').updateOne({_id: request._id}, {$set: update});
+    }
+  }
+
   res.status(200).send("done");
 }
-
-
-
-
 
 
 
@@ -190,13 +166,13 @@ const app = express();
 app.use(express.json());
 app.use(express.urlencoded());
 
-//app.post("/request", authenticate, handleGeneratorRequest);
-app.post("/request", handleGeneratorRequest);
-
+app.post("/request", auth.authenticate, handleGeneratorRequest);
+//app.post("/request", handleGeneratorRequest);
 // app.post("/request", receiveGeneratorUpdate);
 app.post("/model_update", receiveGeneratorUpdate);
-app.post("/sign_in", requestAuthToken);
-app.post("/is_auth", isAuth);
+
+app.post("/sign_in", auth.requestAuthToken);
+app.post("/is_auth", auth.isAuth);
 
 app.listen(PORT, () => {
   console.log(`Listening on port ${PORT}`);

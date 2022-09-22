@@ -1,9 +1,8 @@
+import axios from 'axios'
 import Replicate from 'replicate-js'
 
-import axios from 'axios'
-import {serverUrl, minio_url, minio_bucket, minio_access_key, minio_secret_key} from './constants.js'
-import {REPLICATE_API_TOKEN} from "./constants.js"
-import {randomUUID} from './utils.js'
+import * as utils from './utils.js'
+import {SERVER_URL, REPLICATE_API_TOKEN} from "./constants.js"
 
 
 const replicate = new Replicate({
@@ -11,10 +10,10 @@ const replicate = new Replicate({
 });
 
 export async function submit(generator, config) {
-  const replicateConfig = config; //formatConfigForReplicate(instanceConfig);
+  const replicateConfig = formatConfigForReplicate(config);
 
-  const webhookSecret = randomUUID();
-  const webhookUrl = `${serverUrl}/model_update?secret=${webhookSecret}`;
+  const webhookSecret = utils.randomUUID();
+  const webhookUrl = `${SERVER_URL}/model_update?secret=${webhookSecret}`;
   
   const model = await replicate.getModel(generator.cog);
   const modelVersion = model.results[0].id;
@@ -48,6 +47,17 @@ export async function download(url) {
   return obj;
 }
 
+export function getProgress(input, output) {
+  if (input.mode == 'generate') {
+    const progress = output.length
+    return progress;
+  } else {
+    const numFrames = input.n_interpolate * input.interpolation_texts.length;
+    const progress = output.length / numFrames;  
+    return progress;
+  }
+}
+
 function formatConfigForReplicate(config) {
   config['translation_x'] = config['translation'][0];
   config['translation_y'] = config['translation'][1];
@@ -57,7 +67,19 @@ function formatConfigForReplicate(config) {
   config['rotation_z'] = config['rotation'][2];
   config['interpolation_texts'] = config['interpolation_texts'].join("|")
   config['interpolation_seeds'] = config['interpolation_seeds'].join("|")
+  config['init_image_file'] = config['init_image_file'] || null;
+  config['mask_image_file'] = config['mask_image_file'] || null;
+  config['init_video'] = config['mask_image_file'] || null;
   delete config['translation'];
   delete config['rotation'];
+  if (!config['init_image_file']) {
+    delete config['init_image_file'];
+  }
+  if (!config['mask_image_file']) {
+    delete config['mask_image_file'];
+  }
+  if (!config['init_video']) {
+    delete config['init_video'];
+  }
   return config;
 }

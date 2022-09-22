@@ -1,7 +1,8 @@
 import fs from 'fs';
+import path from 'path'
 import crypto from 'crypto';
 import axios from 'axios';
-import {REPLICATE_API_TOKEN, ETHERSCAN_API_KEY} from "./constants.js"
+import {ETHERSCAN_API_KEY} from "./constants.js"
 
 export function randomUUID() {  
   return crypto.randomUUID();
@@ -11,17 +12,23 @@ export function loadJSON(filename) {
   return JSON.parse(fs.readFileSync(filename, 'utf8'));
 }
 
-export function writeFile(path, content) {
-  fs.writeFile(path, content, function(error) {
+export function writeFile(filename, content) {
+  fs.writeFile(filename, content, function(error) {
     if (error) {
       return console.log(err);
     }
   });
 }; 
 
-export function writeJsonToFile(path, text) {
-  writeFile(path, JSON.stringify(text));
+export function writeJsonToFile(filename, text) {
+  writeFile(filename, JSON.stringify(text));
 }; 
+
+export function getFileType(filename) {
+  let fileType = path.extname(filename).slice(1).toLowerCase();
+  fileType = (fileType == 'jpg') ? 'jpeg' : fileType;
+  return fileType;
+}
 
 export function getAllPropertiesValid(obj_canonical, obj) {
   return Object.keys(obj).every(e => Object.keys(obj_canonical).includes(e));
@@ -31,26 +38,6 @@ export function sha256(data) {
   const hashSum = crypto.createHash('sha256');
   hashSum.update(data);
   return hashSum.digest('hex');
-}
-
-export async function pushToStorage(url) {
-  const options = {  
-    responseType: 'arraybuffer',
-    headers: {
-      'Authorization': "Token "+REPLICATE_API_TOKEN,
-      'Content-Type': "application/json",
-      'Accept': "application/json",      
-    }
-  }
-  const image = await axios.get(url, options);
-
-  const buffer = Buffer.from(image.data);
-  const base64image = buffer.toString('base64');
-  const sha = sha256(base64image);
-
-  writeJsonToFile("./_sha2.json", {'data': sha})
-  writeFile(sha, buffer);
-  return sha;
 }
 
 export async function getAddressNumTransactions(address) {  

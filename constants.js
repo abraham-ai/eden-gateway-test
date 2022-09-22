@@ -2,7 +2,7 @@ export const PORT = 3000;
 export const SERVER_URL = process.env.SERVER_URL;
 
 export const MONGO_URL = process.env.MONGO_URL;
-export const DB_NAME = process.env.MONGO_DB_NAME;
+export const MONGO_DB_NAME = process.env.MONGO_DB_NAME;
 export const JWT_SECRET = process.env.JWT_SECRET;
 
 export const MINIO_URL = process.env.MINIO_URL;

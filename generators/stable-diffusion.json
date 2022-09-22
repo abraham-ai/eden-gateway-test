@@ -41,7 +41,7 @@
   "previous_frame_noise": 0.02, 
   "contrast": 1.0, 
   "angle": 0, 
-  "zoom": 0, 
+  "zoom": 1.0, 
   "translation": [0, 0, 0],
   "rotation": [0, 0, 0]
 }
