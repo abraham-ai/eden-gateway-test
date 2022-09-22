@@ -2,7 +2,7 @@
   "name": "eden-gateway-test",
   "version": "1.0.0",
   "main": "index.js",
-  "repository": "https://github.com/genekogan/eden-gateway-test",
+  "repository": "https://github.com/abraham-ai/eden-gateway-test",
   "author": "Gene Kogan <kogan.gene@gmail.com>",
   "license": "MIT",
   "type": "module",
