@@ -76,7 +76,7 @@ jobs:
       - name: Bump Gateway
         uses: fjogeleit/yaml-update-action@main
         with:
-          valueFile: "apps/eden/eden-gateway/values.yaml"
+          valueFile: "apps/abraham/eden-gateway-test/values.yaml"
           updateFile: true
           propertyPath: "gateway_image"
           value: ${{ steps.prep.outputs.tagged_image }}
