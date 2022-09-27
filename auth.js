@@ -4,9 +4,12 @@ import {JWT_SECRET} from "./constants.js"
 
 
 export function requestAuthToken(req, res) {
+  console.log("request auth token")
   const {message, signature, userId, userType} = req.body;
+  console.log(message, signature, userId, userType);
   try {
     const recovered = ethers.utils.verifyMessage(message, signature);
+    console.log("recovered", recovered);
     if (userId.toLowerCase() === recovered.toLowerCase()) {
       const credentials = {userId: userId, userType: userType};
       const authToken = jwt.sign(credentials, JWT_SECRET, {expiresIn: "90m"});

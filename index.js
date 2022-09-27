@@ -174,6 +174,10 @@ app.post("/model_update", receiveGeneratorUpdate);
 app.post("/sign_in", auth.requestAuthToken);
 app.post("/is_auth", auth.isAuth);
 
+app.post("/", (req, res) => {
+  res.send("Hello world");
+});
+
 app.listen(PORT, () => {
   console.log(`Listening on port ${PORT}`);
 })
