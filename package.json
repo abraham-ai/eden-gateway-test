@@ -27,7 +27,33 @@
         "@semantic-release/commit-analyzer",
         {
           "preset": "angular",
-          "releaseRules": "./config/release-rules.js"
+          "releaseRules": [
+            {
+              "type": "docs",
+              "scope": "README",
+              "release": "patch"
+            },
+            {
+              "type": "refactor",
+              "release": "patch"
+            },
+            {
+              "type": "style",
+              "release": "patch"
+            },
+            {
+              "type": "chore",
+              "release": "minor"
+            },
+            {
+              "type": "fix",
+              "release": "patch"
+            },
+            {
+              "type": "feature",
+              "release": "minor"
+            }
+          ]
         }
       ],
       "@semantic-release/release-notes-generator",
