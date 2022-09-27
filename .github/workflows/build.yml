@@ -1,0 +1,98 @@
+name: Build, Push and Release
+
+on:
+  push:
+    branches:
+      - "main"
+
+jobs:
+  build:
+    name: Build
+    runs-on: ubuntu-20.04
+    steps:
+      - name: Check out the repo
+        uses: actions/checkout@v3
+        with:
+          fetch-depth: 0
+          ref: master
+
+      - name: "Get Previous tag"
+        id: previoustag
+        uses: "WyriHaximus/github-action-get-previous-tag@v1"
+        with:
+          fallback: 1.0.0
+
+      - name: Check out the repo
+        uses: actions/checkout@v3
+
+      - name: Prepare
+        id: prep
+        run: |
+          TAG=$(echo $GITHUB_SHA | head -c7)
+          IMAGE="${{ secrets.REGISTRY_URL }}/abraham-ai/${{ secrets.ENV }}"
+          SEMVER=${{ steps.previoustag.outputs.tag }}
+          echo ::set-output name=tagged_image::${IMAGE}:${SEMVER}-${TAG}
+          echo ::set-output name=tag::${TAG}
+          echo ::set-output name=image::${IMAGE}
+          echo ::set-output name=semver::${SEMVER}
+
+      - name: Set up QEMU
+        uses: docker/setup-qemu-action@v2
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v2
+
+      - name: Login to Abraham Registry
+        uses: docker/login-action@v2
+        with:
+          registry: registry.aws.abraham.fun
+          username: ${{ secrets.REGISTRY_USER }}
+          password: ${{ secrets.REGISTRY_PASSWORD }}
+
+      - name: Build image and push to Abraham Registry
+        uses: docker/build-push-action@v3
+        with:
+          context: .
+          tags: ${{ steps.prep.outputs.tagged_image }}
+          push: true
+
+      - name: Prepare Semantic
+        uses: actions/setup-node@v3
+        with:
+          node-version: "16"
+      - name: Run Semantic
+        id: ver
+        run: npx semantic-release
+        env:
+          GITHUB_TOKEN: ${{ secrets.ONE1ZERO1ONE_PAT }}
+
+      - name: Check out releases repo
+        uses: actions/checkout@v3
+        with:
+          repository: abraham-ai/releases
+          ref: refs/heads/main
+          token: ${{ secrets.ONE1ZERO1ONE_PAT }}
+
+      - name: Bump Gateway
+        uses: fjogeleit/yaml-update-action@main
+        with:
+          valueFile: "apps/eden/eden-gateway/values.yaml"
+          updateFile: true
+          propertyPath: "gateway_image"
+          value: ${{ steps.prep.outputs.tagged_image }}
+          repository: abraham-ai/releases
+          branch: main
+          targetBranch: main
+          masterBranchName: main
+          commitChange: true
+          createPR: false
+          message: "Update  ${{ secrets.ENV }} Image Version to ${{ steps.prep.outputs.tagged_image }}"
+          token: ${{ secrets.ONE1ZERO1ONE_PAT }}
+
+
+      - name: Discord notification Gateway
+        env:
+          DISCORD_WEBHOOK: ${{ secrets.DISCORD_WEBHOOK }}
+        uses: Ilshidur/action-discord@master
+        with:
+          args: " ${{ secrets.ENV }} image ${{ steps.prep.outputs.tagged_image }} has been deployed."
