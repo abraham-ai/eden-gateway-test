@@ -174,11 +174,21 @@ app.post("/model_update", receiveGeneratorUpdate);
 app.post("/sign_in", auth.requestAuthToken);
 app.post("/is_auth", auth.isAuth);
 
+console.log("hello 0")
+  
+
 app.post("/", (req, res) => {
+  console.log("hello 1")
   res.send("Hello world");
 });
 
+
+
 app.listen(PORT, () => {
-  console.log(`Listening on port ${PORT}`);
+  console.log(`Listening on port ${PORT} !`);
+  console.log("hello 5")
+  
 })
 
+console.log("hello 3")
+  
