@@ -4,7 +4,6 @@ import Replicate from 'replicate-js'
 import * as utils from './utils.js'
 import {SERVER_URL, REPLICATE_API_TOKEN} from "./constants.js"
 
-
 const replicate = new Replicate({
   token: REPLICATE_API_TOKEN
 });
