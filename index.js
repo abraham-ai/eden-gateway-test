@@ -19,7 +19,6 @@ import * as utils from './utils.js'
 import {db} from "./db.js"
 
 
-
 function getCost(generator_name, config) {
   let cost = 0
   if (generator_name == 'stable-diffusion') {
@@ -86,8 +85,8 @@ async function handleGeneratorRequest(req, res) {
   }
   
   // you shall pass; submit task to provider
-  const {task, generator_data} = await eden.submit(generator, instanceConfig)
-  //const {task, generator_data} = await replicate.submit(generator, instanceConfig)  
+  //const {task, generator_data} = await eden.submit(generator, instanceConfig)
+  const {task, generator_data} = await replicate.submit(generator, instanceConfig)  
   
   if (task.status == 'failed') {
     res.status(500).send("Server error");

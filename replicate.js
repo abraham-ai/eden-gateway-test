@@ -1,4 +1,5 @@
 import axios from 'axios'
+import url from 'url'
 import Replicate from 'replicate-js'
 
 import * as utils from './utils.js'
@@ -62,7 +63,7 @@ export async function receiveGeneratorUpdate(req, res) {
   else {
     if (output) {
       const lastOutputUrl = output.slice(-1)[0];
-      const image = await replicate.download(lastOutputUrl);
+      const image = await download(lastOutputUrl);
       const fileType = utils.getFileType(lastOutputUrl);
       const base64image = Buffer.from(image.data, "base64");
       const sha = utils.sha256(base64image);
