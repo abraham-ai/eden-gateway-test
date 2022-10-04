@@ -16,6 +16,7 @@
   "init_image_file": "", 
   "init_image_b64": "", 
   "init_image_strength": 0.0, 
+  "init_image_inpaint_mode": "cv2_telea", 
   "init_sample": "", 
   "init_latent": "", 
   "mask_image": "", 

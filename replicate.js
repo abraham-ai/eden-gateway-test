@@ -2,17 +2,19 @@ import axios from 'axios'
 import Replicate from 'replicate-js'
 
 import * as utils from './utils.js'
-import {SERVER_URL, REPLICATE_API_TOKEN} from "./constants.js"
+import {db, minio} from "./db.js"
+import {SERVER_URL, REPLICATE_API_TOKEN, MINIO_BUCKET} from "./constants.js"
 
 const replicate = new Replicate({
   token: REPLICATE_API_TOKEN
 });
 
+
 export async function submit(generator, config) {
   const replicateConfig = formatConfigForReplicate(config);
 
   const webhookSecret = utils.randomUUID();
-  const webhookUrl = `${SERVER_URL}/model_update?secret=${webhookSecret}`;
+  const webhookUrl = `${SERVER_URL}/model_update_replicate?secret=${webhookSecret}`;
   
   const model = await replicate.getModel(generator.cog);
   const modelVersion = model.results[0].id;
@@ -34,6 +36,53 @@ export async function submit(generator, config) {
   return {task, generator_data};
 }
 
+
+export async function receiveGeneratorUpdate(req, res) {
+  const {id, status, completed_at, output} = req.body;
+  
+  // get the original request
+  const request = await db.collection('requests').findOne({"generator.task_id": id});
+  if (!request) {
+    return res.status(500).send(`Request ${id} not found`);
+  }
+  
+  // verify sender
+  const webhookSecret = url.parse(req.url, true).query.secret;
+  if (webhookSecret != request.generator.secret) {
+    return res.status(500).send("Wrong secret token");
+  }
+
+  if (status == "failed") {
+    await db.collection('requests').updateOne({_id: request._id}, {
+      $set: {status: "failed", error: req.body.error}
+      
+      // refund them
+    });
+  }
+  else {
+    if (output) {
+      const lastOutputUrl = output.slice(-1)[0];
+      const image = await replicate.download(lastOutputUrl);
+      const fileType = utils.getFileType(lastOutputUrl);
+      const base64image = Buffer.from(image.data, "base64");
+      const sha = utils.sha256(base64image);
+      const metadata = {'Content-Type': `image/${fileType}`, 'SHA': sha};
+      let update = {output: sha};
+      if (completed_at) {
+        update.status = 'complete';
+      } else {
+        update.status = 'running';
+        update.progress = getProgress(input, output);
+      }
+      await minio.putObject(MINIO_BUCKET, sha, base64image, metadata);
+      await db.collection('requests').updateOne({_id: request._id}, {$set: update});
+    }
+  }
+
+  res.status(200).send("Success");
+}
+
+
 export async function download(url) {
   const obj = await axios.get(url, {  
     headers: {
@@ -46,6 +95,7 @@ export async function download(url) {
   return obj;
 }
 
+
 export function getProgress(input, output) {
   if (input.mode == 'generate') {
     const progress = output.length
@@ -56,6 +106,7 @@ export function getProgress(input, output) {
     return progress;
   }
 }
+
 
 function formatConfigForReplicate(config) {
   config['translation_x'] = config['translation'][0];

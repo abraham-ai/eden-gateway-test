@@ -1,4 +1,4 @@
-export const PORT = 80;
+export const PORT = process.env.PORT || 80;
 export const SERVER_URL = process.env.SERVER_URL;
 
 export const MONGO_URL = process.env.MONGO_URL;
@@ -13,6 +13,8 @@ export const MINIO_SECRET_KEY = process.env.MINIO_SECRET_KEY;
 export const REPLICATE_API_TOKEN = process.env.REPLICATE_API_TOKEN;
 export const ETHERSCAN_API_KEY = process.env.ETHERSCAN_API_KEY;
 
+export const EDEN_STABLE_DIFFUSION_URL = process.env.EDEN_STABLE_DIFFUSION_URL;
+
 export const generators = {
   'clipx': {
     cog: "abraham-ai/clipx",
@@ -20,7 +22,8 @@ export const generators = {
   },
   'stable-diffusion': {
     cog: "abraham-ai/eden-stable-diffusion",
-    configFile: "./generators/stable-diffusion.json"
+    configFile: "./generators/stable-diffusion.json",
+    edenUrl: EDEN_STABLE_DIFFUSION_URL
   }
 }
 
