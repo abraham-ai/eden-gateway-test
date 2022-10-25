@@ -31,8 +31,15 @@ export function getFileType(filename) {
 }
 
 export function getAllPropertiesValid(obj_canonical, obj) {
-  return Object.keys(obj).every(e => Object.keys(obj_canonical).includes(e));
+  let invalidKeys = Object.keys(obj).filter(e => !Object.keys(obj_canonical).includes(e));
+  if (invalidKeys.length > 0) {
+    console.log("Invalid keys: ", invalidKeys);
+    return false;
+  } else {
+    return true;
+  }
 }
+
 
 export function sha256(data) {
   const hashSum = crypto.createHash('sha256');
