@@ -41,6 +41,7 @@ async function handleFetchRequest(req, res) {
 }
 
 async function handleGeneratorRequest(req, res) {
+  console.log("got a request");
   const {generator_name, config, application, metadata, token} = req.body;
   const userCredentials = auth.decodeUserFromToken(token);
   
@@ -68,7 +69,13 @@ async function handleGeneratorRequest(req, res) {
   let generator = generators[generator_name]
   const defaultConfig = utils.loadJSON(generator.configFile);
 
+  console.log("----")
+  console.log(defaultConfig)
+  console.log("----")
+  console.log(config)
+  console.log("----")
   if (!utils.getAllPropertiesValid(defaultConfig, config)) {
+    console.log("got it not valid")
     return res.status(400).send('Config contains unrecognized fields');
   }
   let instanceConfig = Object.assign(defaultConfig, config);
@@ -137,7 +144,7 @@ app.post("/model_update_eden", eden.receiveGeneratorUpdate);
 app.post("/sign_in", auth.requestAuthToken);
 app.post("/is_auth", auth.isAuth);
 
-app.post("/", (req, res) => {
+app.get("/", (req, res) => {
   res.send("Hello world");
 });
 

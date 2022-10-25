@@ -37,10 +37,30 @@ export async function submit(generator, config) {
   return {task, generator_data};
 }
 
+let idxx = 1;
+let idxxx = 1;
+
 
 export async function receiveGeneratorUpdate(req, res) {
-  const {id, status, completed_at, output} = req.body;
   
+  // timestamp for now's time
+  let current_time = new Date().getTime();
+  let tttt = Math.random();
+  utils.writeJsonToFile(`__test${current_time}_${tttt}.json`, req.body);
+  
+  res.status(200).send("Success");
+}
+
+export async function receiveGeneratorUpdate99(req, res) {
+  const {id, status, input, output} = req.body;
+  
+  // timestamp for now's time
+  let current_time = new Date().getTime();
+  let tttt = Math.random();
+  utils.writeJsonToFile(`__body${current_time}_${tttt}.json`, req.body);
+  //idxx = idxx+ 1;
+
+
   // get the original request
   const request = await db.collection('requests').findOne({"generator.task_id": id});
   if (!request) {
@@ -61,6 +81,8 @@ export async function receiveGeneratorUpdate(req, res) {
     });
   }
   else {
+
+    
     if (output) {
       const lastOutputUrl = output.slice(-1)[0];
       const image = await download(lastOutputUrl);
@@ -68,15 +90,40 @@ export async function receiveGeneratorUpdate(req, res) {
       const base64image = Buffer.from(image.data, "base64");
       const sha = utils.sha256(base64image);
       const metadata = {'Content-Type': `image/${fileType}`, 'SHA': sha};
-      let update = {output: sha};
-      if (completed_at) {
-        update.status = 'complete';
-      } else {
-        update.status = 'running';
-        update.progress = getProgress(input, output);
+
+      utils.writeJsonToFile(`__status${current_time}_${tttt}.json`, {status: status});
+
+      if (status == 'processing') {
+        let update = {status: 'running', progress: getProgress(input, output)};
+        let push = {intermediate_outputs: sha};
+        // update.status = 'running';
+        // update.progress = getProgress(input, output);
+        
+        // push and set at the same time
+        //await db.collection('requests').updateOne({_id: request._id}, {$set: update, $push: push});
+        db.collection('requests').updateOne({_id: request._id}, {$set: update, $push: push});
+        
+        //
+      } 
+      else if (status == 'succeeded') {
+        let update = {status: 'complete', progress: 1.0, output: sha}
+        // update.status = 'complete';
+        // update.progress = 1.0;
+        // update.output = sha;
+        //await db.collection('requests').updateOne({_id: request._id}, {$set: update});        
+        db.collection('requests').updateOne({_id: request._id}, {$set: update});        
+//        let tttt2 = Math.random();
+  //      utils.writeJsonToFile(`__progress${current_time}_${tttt2}.json`, {"progress": update.progress});
+      } 
+      else if (status == 'failed') {
+        // todo
+
       }
-      await minio.putObject(MINIO_BUCKET, sha, base64image, metadata);
-      await db.collection('requests').updateOne({_id: request._id}, {$set: update});
+      
+      
+      //await minio.putObject(MINIO_BUCKET, sha, base64image, metadata);
+      minio.putObject(MINIO_BUCKET, sha, base64image, metadata);
+      
     }
   }
 
@@ -99,7 +146,8 @@ export async function download(url) {
 
 export function getProgress(input, output) {
   if (input.mode == 'generate') {
-    const progress = output.length
+    const nFrames = 1 + Math.floor(input.steps / input.stream_every);
+    const progress = output.length / nFrames;
     return progress;
   } else {
     const numFrames = input.n_interpolate * input.interpolation_texts.length;
@@ -118,6 +166,7 @@ function formatConfigForReplicate(config) {
   config['rotation_z'] = config['rotation'][2];
   config['interpolation_texts'] = config['interpolation_texts'].join("|")
   config['interpolation_seeds'] = config['interpolation_seeds'].join("|")
+  config['interpolation_init_images'] = config['interpolation_init_images'].join("|")
   config['init_image_file'] = config['init_image_file'] || null;
   config['mask_image_file'] = config['mask_image_file'] || null;
   config['init_video'] = config['mask_image_file'] || null;
