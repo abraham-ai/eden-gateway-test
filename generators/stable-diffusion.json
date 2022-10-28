@@ -33,6 +33,7 @@
   "interpolation_texts": [],
   "interpolation_seeds": [],
   "interpolation_init_images": [],
+  "interpolation_init_images_use_img2txt": false,
   "interpolation_init_images_top_k": 2,  
   "interpolation_init_images_power": 3.0,
   "interpolation_init_images_min_strength": 0.2,
