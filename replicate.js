@@ -37,28 +37,21 @@ export async function submit(generator, config) {
   return {task, generator_data};
 }
 
-let idxx = 1;
-let idxxx = 1;
-
 
 export async function receiveGeneratorUpdate(req, res) {
+  const {completed_at, id, status, input, output} = req.body;
   
-  // timestamp for now's time
-  let current_time = new Date().getTime();
-  let tttt = Math.random();
-  utils.writeJsonToFile(`__test${current_time}_${tttt}.json`, req.body);
-  
-  res.status(200).send("Success");
-}
 
-export async function receiveGeneratorUpdate99(req, res) {
-  const {id, status, input, output} = req.body;
-  
-  // timestamp for now's time
+  // debug block
   let current_time = new Date().getTime();
   let tttt = Math.random();
+  if (!completed_at) {
+    res.status(200).send("Success");
+    //utils.writeJsonToFile(`____progress${current_time}_${tttt}.json`, req.body);
+    return;
+  }
   utils.writeJsonToFile(`__body${current_time}_${tttt}.json`, req.body);
-  //idxx = idxx+ 1;
+
 
 
   // get the original request
@@ -73,57 +66,49 @@ export async function receiveGeneratorUpdate99(req, res) {
     return res.status(500).send("Wrong secret token");
   }
 
+  // handle failures
   if (status == "failed") {
+    
+    // mark request failed
     await db.collection('requests').updateOne({_id: request._id}, {
       $set: {status: "failed", error: req.body.error}
-      
-      // refund them
+    });
+    
+    // refund user (todo: check this)    
+    let user = await db.collection('users').findOne(request.user);
+    await db.collection('users').updateOne({_id: user._id}, {
+      $set: {balance: user.balance + request.cost}
     });
   }
   else {
-
     
     if (output) {
       const lastOutputUrl = output.slice(-1)[0];
-      const image = await download(lastOutputUrl);
+      const asset = await download(lastOutputUrl);
+      const assetB64 = Buffer.from(asset.data, "base64");
+      const sha = utils.sha256(assetB64);
       const fileType = utils.getFileType(lastOutputUrl);
-      const base64image = Buffer.from(image.data, "base64");
-      const sha = utils.sha256(base64image);
-      const metadata = {'Content-Type': `image/${fileType}`, 'SHA': sha};
+      const assetType = (fileType == "mp4") ? `video/${fileType}` : `image/${fileType}`;
+      const metadata = {'Content-Type': assetType, 'SHA': sha};
 
-      utils.writeJsonToFile(`__status${current_time}_${tttt}.json`, {status: status});
-
-      if (status == 'processing') {
+      if (status == 'processing____') { // disabled for now
         let update = {status: 'running', progress: getProgress(input, output)};
         let push = {intermediate_outputs: sha};
-        // update.status = 'running';
-        // update.progress = getProgress(input, output);
-        
-        // push and set at the same time
-        //await db.collection('requests').updateOne({_id: request._id}, {$set: update, $push: push});
-        db.collection('requests').updateOne({_id: request._id}, {$set: update, $push: push});
-        
-        //
+        await db.collection('requests').updateOne({_id: request._id}, {
+          $set: update, $push: push
+        });
       } 
       else if (status == 'succeeded') {
         let update = {status: 'complete', progress: 1.0, output: sha}
-        // update.status = 'complete';
-        // update.progress = 1.0;
-        // update.output = sha;
-        //await db.collection('requests').updateOne({_id: request._id}, {$set: update});        
-        db.collection('requests').updateOne({_id: request._id}, {$set: update});        
-//        let tttt2 = Math.random();
-  //      utils.writeJsonToFile(`__progress${current_time}_${tttt2}.json`, {"progress": update.progress});
+        await db.collection('requests').updateOne({_id: request._id}, {
+          $set: update
+        });        
       } 
       else if (status == 'failed') {
         // todo
-
       }
       
-      
-      //await minio.putObject(MINIO_BUCKET, sha, base64image, metadata);
-      minio.putObject(MINIO_BUCKET, sha, base64image, metadata);
-      
+      await minio.putObject(MINIO_BUCKET, sha, assetB64, metadata);
     }
   }
 
@@ -158,28 +143,29 @@ export function getProgress(input, output) {
 
 
 function formatConfigForReplicate(config) {
-  config['translation_x'] = config['translation'][0];
-  config['translation_y'] = config['translation'][1];
-  config['translation_z'] = config['translation'][2];
-  config['rotation_x'] = config['rotation'][0];
-  config['rotation_y'] = config['rotation'][1];
-  config['rotation_z'] = config['rotation'][2];
-  config['interpolation_texts'] = config['interpolation_texts'].join("|")
-  config['interpolation_seeds'] = config['interpolation_seeds'].join("|")
-  config['interpolation_init_images'] = config['interpolation_init_images'].join("|")
-  config['init_image_file'] = config['init_image_file'] || null;
-  config['mask_image_file'] = config['mask_image_file'] || null;
-  config['init_video'] = config['mask_image_file'] || null;
-  delete config['translation'];
-  delete config['rotation'];
-  if (!config['init_image_file']) {
-    delete config['init_image_file'];
+  const c = JSON.parse(JSON.stringify(config));
+  c['translation_x'] = c['translation'][0];
+  c['translation_y'] = c['translation'][1];
+  c['translation_z'] = c['translation'][2];
+  c['rotation_x'] = c['rotation'][0];
+  c['rotation_y'] = c['rotation'][1];
+  c['rotation_z'] = c['rotation'][2];
+  c['interpolation_texts'] = c['interpolation_texts'].join("|")
+  c['interpolation_seeds'] = c['interpolation_seeds'].join("|")
+  c['interpolation_init_images'] = c['interpolation_init_images'].join("|")
+  c['init_image_file'] = c['init_image_file'] || null;
+  c['mask_image_file'] = c['mask_image_file'] || null;
+  c['init_video'] = c['mask_image_file'] || null;
+  delete c['translation'];
+  delete c['rotation'];
+  if (!c['init_image_file']) {
+    delete c['init_image_file'];
   }
-  if (!config['mask_image_file']) {
-    delete config['mask_image_file'];
+  if (!c['mask_image_file']) {
+    delete c['mask_image_file'];
   }
-  if (!config['init_video']) {
-    delete config['init_video'];
+  if (!c['init_video']) {
+    delete c['init_video'];
   }
-  return config;
+  return c;
 }
