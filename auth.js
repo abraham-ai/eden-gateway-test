@@ -1,26 +1,40 @@
 import ethers from "ethers";
 import jwt from "jsonwebtoken";
 import {JWT_SECRET} from "./constants.js"
+import {db} from "./db.js"
 
 
-export function requestAuthToken(req, res) {
-  console.log("request auth token")
-  const {message, signature, userId, userType} = req.body;
-  console.log(message, signature, userId, userType);
+export async function requestAuthToken(req, res) {
+  const {message, signature, userId, userType, apiKey, apiSecret} = req.body;
   try {
-    const recovered = ethers.utils.verifyMessage(message, signature);
-    console.log("recovered", recovered);
-    if (userId.toLowerCase() === recovered.toLowerCase()) {
-      const credentials = {userId: userId, userType: userType};
-      const authToken = jwt.sign(credentials, JWT_SECRET, {expiresIn: "90m"});
-      res.status(200).json({authToken});
-    } else {      
-      res.status(401).send("Mismatched address and signature");
-    }
+    if (apiKey && apiSecret) {
+      let key = await db.collection('api_keys').findOne({
+        key: apiKey, secret: apiSecret
+      });
+      if (key) {
+        const credentials = {userId: apiKey, userType: "api_key"};
+        const authToken = jwt.sign(credentials, JWT_SECRET, {expiresIn: "90m"});
+        res.status(200).json({authToken});
+      }
+      else {
+        res.status(401).send("API key or secret invalid");
+      }
+    } 
+    else if (message && signature && userId && userType) {
+      const recovered = ethers.utils.verifyMessage(message, signature);
+      if (userId.toLowerCase() === recovered.toLowerCase()) {
+        const credentials = {userId: userId, userType: userType};
+        const authToken = jwt.sign(credentials, JWT_SECRET, {expiresIn: "90m"});
+        res.status(200).json({authToken});
+      } else {      
+        res.status(401).send("Mismatched address and signature");
+      }
+    }    
   } catch (error) {
     res.status(400).send(error.message);
   }
 };
+
 
 export function isAuth(req, res) {
   const {token} = req.body;
@@ -31,6 +45,7 @@ export function isAuth(req, res) {
   }
   res.status(200).json({token});
 };
+
 
 export async function authenticate(req, res, next) {
   if (process.env.GATEWAY_INTERNAL) {
@@ -51,6 +66,7 @@ export async function authenticate(req, res, next) {
   return next();
 }
 
+
 export function decodeUserFromToken(token) {
   try {
     const decoded = jwt.verify(token, JWT_SECRET);
@@ -61,10 +77,3 @@ export function decodeUserFromToken(token) {
     return null;
   }
 };
-
-// export default {
-//   requestAuthToken, 
-//   isAuth, 
-//   authenticate, 
-//   decodeUserFromToken
-// }

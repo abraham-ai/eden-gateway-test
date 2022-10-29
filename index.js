@@ -86,9 +86,11 @@ async function handleGeneratorRequest(req, res) {
     return res.status(401).send('Not enough credits remaining');
   }
   
-  // you shall pass; submit task to provider
-  //const {task, generator_data} = await eden.submit(generator, instanceConfig)
+  /* ==> open sesame <== */
+  
+  // finally submit job
   const {task, generator_data} = await replicate.submit(generator, instanceConfig)  
+  //const {task, generator_data} = await eden.submit(generator, instanceConfig)
   
   if (task.status == 'failed') {
     res.status(500).send("Server error");
@@ -129,11 +131,9 @@ app.use(cors());
 app.use(express.json({limit: '50mb'}));
 app.use(express.urlencoded({limit: '50mb'}));
 
-// app.post("/request", auth.authenticate, handleGeneratorRequest);
-app.post("/request", handleGeneratorRequest);
+app.post("/request", auth.authenticate, handleGeneratorRequest);
 app.post("/fetch", handleFetchRequest);
 
-// app.post("/request", receiveGeneratorUpdate);
 app.post("/model_update_replicate", replicate.receiveGeneratorUpdate);
 app.post("/model_update_eden", eden.receiveGeneratorUpdate);
 
@@ -141,10 +141,10 @@ app.post("/sign_in", auth.requestAuthToken);
 app.post("/is_auth", auth.isAuth);
 
 app.get("/", (req, res) => {
-  res.send("Hello world");
+  res.send("Gateway is running");
 });
 
 app.listen(PORT, () => {
-  console.log(`Listening on port ${PORT} !`);
+  console.log(`Gateway listening on port ${PORT} !`);
 })
   
