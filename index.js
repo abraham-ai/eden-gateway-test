@@ -54,7 +54,9 @@ async function handleGeneratorRequest(req, res) {
     if (userCredentials.userType == "ethereum") {
       const numTransactions = await utils.getAddressNumTransactions(userCredentials.userId);
       if (numTransactions < 3) {
-        return res.status(401).send('User has no credits, and ineligible for free credits');
+        const msg = 'User has no credits, and ineligible for free credits';
+        console.log(msg);
+        return res.status(401).send(msg);
       }
     } 
 
@@ -72,7 +74,9 @@ async function handleGeneratorRequest(req, res) {
   let generator = generators[generator_name]
   const defaultConfig = utils.loadJSON(generator.configFile);
   if (!utils.getAllPropertiesValid(defaultConfig, config)) {
-    return res.status(400).send('Config contains unrecognized fields');
+    const msg = 'Config contains unrecognized fields';
+    console.log(msg);
+    return res.status(400).send(msg);
   }
   let instanceConfig = Object.assign(defaultConfig, config);
   const cost = getCost(generator_name, instanceConfig)
@@ -83,7 +87,9 @@ async function handleGeneratorRequest(req, res) {
     return res.status(401).send('Rate limit hit, please try again later');
   }
   if (cost > user.balance) {
-    return res.status(401).send('Not enough credits remaining');
+    const msg = 'Not enough credits remaining';
+    console.log(msg);
+    return res.status(401).send(msg);
   }
   
   /* ==> open sesame <== */
@@ -93,7 +99,8 @@ async function handleGeneratorRequest(req, res) {
   //const {task, generator_data} = await eden.submit(generator, instanceConfig)
   
   if (task.status == 'failed') {
-    res.status(500).send("Server error");
+    console.log("Server error: ", task.error);
+    res.status(500).send("Server error "+task.error);
   }
 
   // create request document
