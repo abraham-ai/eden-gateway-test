@@ -26,7 +26,7 @@ function getCost(generator_name, config) {
       cost = 1
     }
     else if (config.mode == 'interpolate') {
-      cost = config.n_interpolate * config.interpolation_texts.length;
+      cost = config.n_frames;
     }
   } else if (generator_name == 'clipx') {
     cost = 1;
@@ -49,25 +49,28 @@ async function handleGeneratorRequest(req, res) {
   
   // if user is not found, greet new user
   if (!user) {
+
+    // check to see if user is eligible for free credits, otherwise stop
     if (userCredentials.userType == "ethereum") {
       const numTransactions = await utils.getAddressNumTransactions(userCredentials.userId);
-      if (numTransactions < 0) {
+      if (numTransactions < 3) {
         return res.status(401).send('User has no credits, and ineligible for free credits');
       }
     } 
-    // create new user, give free credits
+
+    // new user is eligible: add to db, give free credits
     const newUser = await db.collection('users').insertOne({
       userId: userCredentials.userId,
       userType: userCredentials.userType,
       balance: 100
-    });    
+    });
+
     user = await db.collection('users').findOne(newUser.insertedId);
   }
 
-  // get generator, config, and cost
+  // get generator, instance config, and cost
   let generator = generators[generator_name]
   const defaultConfig = utils.loadJSON(generator.configFile);
-
   if (!utils.getAllPropertiesValid(defaultConfig, config)) {
     return res.status(400).send('Config contains unrecognized fields');
   }
@@ -79,14 +82,15 @@ async function handleGeneratorRequest(req, res) {
   if (rateLimitHit) {
     return res.status(401).send('Rate limit hit, please try again later');
   }
-
   if (cost > user.balance) {
     return res.status(401).send('Not enough credits remaining');
   }
   
-  // you shall pass; submit task to provider
-  //const {task, generator_data} = await eden.submit(generator, instanceConfig)
+  /* ==> open sesame <== */
+  
+  // finally submit job
   const {task, generator_data} = await replicate.submit(generator, instanceConfig)  
+  //const {task, generator_data} = await eden.submit(generator, instanceConfig)
   
   if (task.status == 'failed') {
     res.status(500).send("Server error");
@@ -97,6 +101,7 @@ async function handleGeneratorRequest(req, res) {
     name: application, 
     metadata: metadata
   }  
+
   if (application == "eden.art") {
     application_data.stats = {
       praise_count: 0, burn_count: 0, praise_addresses: [''], burn_addresses: ['']
@@ -126,22 +131,20 @@ app.use(cors());
 app.use(express.json({limit: '50mb'}));
 app.use(express.urlencoded({limit: '50mb'}));
 
-// app.post("/request", auth.authenticate, handleGeneratorRequest);
-app.post("/request", handleGeneratorRequest);
+app.post("/request", auth.authenticate, handleGeneratorRequest);
 app.post("/fetch", handleFetchRequest);
 
-// app.post("/request", receiveGeneratorUpdate);
 app.post("/model_update_replicate", replicate.receiveGeneratorUpdate);
 app.post("/model_update_eden", eden.receiveGeneratorUpdate);
 
 app.post("/sign_in", auth.requestAuthToken);
 app.post("/is_auth", auth.isAuth);
 
-app.post("/", (req, res) => {
-  res.send("Hello world");
+app.get("/", (req, res) => {
+  res.send("Gateway is running");
 });
 
 app.listen(PORT, () => {
-  console.log(`Listening on port ${PORT} !`);
+  console.log(`Gateway listening on port ${PORT} !`);
 })
   
