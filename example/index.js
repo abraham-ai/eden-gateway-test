@@ -67,8 +67,11 @@ async function main() {
     "seed": Math.floor(1e8 * Math.random())
   }
 
+
   let real2real_config = {
     "mode": "interpolate", 
+    "stream": true,
+    "stream_every": 1,
     "text_input": "real2real", // text_input has no effect in interpolate mode
     "seed": Math.floor(1e8 * Math.random()), // seed has no effect in interpolate mode
     "sampler": "euler",
@@ -87,7 +90,8 @@ async function main() {
     "interpolation_init_images_use_img2txt": true, // use prompt-search to get text inputs. if false, need to set "interpolation_texts" manually
     "n_frames": 90,  // total number of frames
     "loop": true,
-    "smooth": true
+    "smooth": true,
+    "n_film": 1
   }
 
   const request = {
@@ -110,7 +114,7 @@ async function main() {
     let {status, output} = response.data[0];
     if (status == 'complete') {
       let outputUrl = `${MINIO_URL}/${MINIO_BUCKET}/${output}`;
-      console.log(`finished! image at ${outputUrl}`);
+      console.log(`finished! result at ${outputUrl}`);
       clearInterval(this);
     }
     else if (status == 'failed') {
