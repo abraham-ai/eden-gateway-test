@@ -1,22 +1,58 @@
 
+/*
+
+api_keys
+ - key
+ - secret
+
+users
+ - userId
+ - userType
+ - balance
+
+requests
+ - timestamp
+ - user
+ - generator
+ - config
+ - application/metadata
+ - output {nsfw, embeddings, sha, intermediate}
+
+creations (?)
+ - request
+ - embeddings
+ - nsfw
+
+collections
+ - id
+ - user (or users)
+ - name
+ - requests []
+ */
+
+
 
 // TODO
+// frontend for createNewAPIKey/admin
+// error handling for all endpoints
+// observability, stats, telemetry
+
+// MISC
 // make EDEN_STABLE_DIFFUSION_URL a secret
-// authenticate discord user
 // db -> save both instanceconfig and user config
-// observability, error handling
-// admin/addtokens
-// stats
+
+
 
 import express from 'express';
 import cors from 'cors';
 
-import {PORT, generators} from "./constants.js"
-import * as replicate from "./replicate.js"
-import * as eden from "./eden.js"
+import {PORT, generators} from "./constants.js";
+import {db} from "./db.js";
+import * as utils from './utils.js';
 import * as auth from './auth.js';
-import * as utils from './utils.js'
-import {db} from "./db.js"
+import * as replicate from "./replicate.js";
+import * as eden from "./eden.js";
+import * as collections from "./collections.js";
 
 
 function getCost(generator_name, config) {
@@ -34,15 +70,25 @@ function getCost(generator_name, config) {
   return cost;
 }
 
+
 async function handleFetchRequest(req, res) {
-  const {taskIds} = req.body;
-  const requests = await db.collection('requests').find({"generator.task_id": {$in: taskIds}}).toArray();
+  const {taskIds, userIds} = req.body;
+  const filter = {};
+  if (taskIds) {
+    filter["generator.task_id"] = {$in: taskIds};
+  }
+  if (userIds) {
+    let userIds_ = await db.collection('users').find({"userId": {$in: userIds}}).toArray().map((user) => user._id);
+    filter["user"] = {$in: userIds_};
+  }
+  const requests = await db.collection('requests').find(filter).toArray();
   return res.status(200).send(requests);
 }
 
+
 async function handleGeneratorRequest(req, res) {
-  const {generator_name, config, application, metadata, token} = req.body;
-  const userCredentials = auth.decodeUserFromToken(token);
+  const {generator_name, config, application, metadata} = req.body;
+  const userCredentials = auth.identifyUser(req);
   
   // get user entry in credits collection
   let user = await db.collection('users').findOne(userCredentials);
@@ -71,7 +117,7 @@ async function handleGeneratorRequest(req, res) {
   }
 
   // get generator, instance config, and cost
-  let generator = generators[generator_name]
+  let generator = generators[generator_name];
   const defaultConfig = utils.loadJSON(generator.configFile);
   if (!utils.getAllPropertiesValid(defaultConfig, config)) {
     const msg = 'Config contains unrecognized fields';
@@ -129,7 +175,7 @@ async function handleGeneratorRequest(req, res) {
     $set: {balance: user.balance - cost}
   });
   
-  res.status(200).send(task.id);
+  return res.status(200).send(task.id);
 }
 
 
@@ -145,9 +191,14 @@ app.post("/model_update_replicate", replicate.receiveGeneratorUpdate);
 app.post("/model_update_eden", eden.receiveGeneratorUpdate);
 
 app.post("/sign_in", auth.requestAuthToken);
-app.post("/is_auth", auth.isAuth);
+app.post("/is_auth", auth.isAuthenticated);
 
-app.get("/", (req, res) => {
+app.post("/get_collections", collections.handleGetCollectionsRequest);
+app.post("/create_collection", auth.authenticate, collections.handleCreateCollectionRequest);
+app.post("/edit_collection", auth.authenticate, collections.handleEditCollectionRequest);
+
+
+app.get("/", async (req, res) => {
   res.send("Gateway is running");
 });
 

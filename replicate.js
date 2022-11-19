@@ -50,7 +50,7 @@ export async function receiveGeneratorUpdate(req, res) {
     //utils.writeJsonToFile(`____progress${current_time}_${tttt}.json`, req.body);
     return;
   }
-  utils.writeJsonToFile(`__body${current_time}_${tttt}.json`, req.body);
+  //utils.writeJsonToFile(`__body${current_time}_${tttt}.json`, req.body);
 
 
 
