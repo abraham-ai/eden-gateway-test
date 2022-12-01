@@ -12,6 +12,7 @@
   "ddim_eta": 0.0, 
   "C": 4, 
   "f": 8, 
+  "upscale_f": 1.0,
   "dynamic_threshold": "", 
   "static_threshold": "", 
   "init_image": "", 
