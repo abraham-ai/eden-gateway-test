@@ -5,12 +5,18 @@ import {db} from "./db.js"
 
 
 export async function requestAuthToken(req, res) {
+  console.log("auth 1")
   const {message, signature, userId, userType, apiKey, apiSecret} = req.body;
   try {    
     if (apiKey && apiSecret) {
+      console.log("auth 2")
       try {
+        console.log("auth 3")
         const user = await decodeUserFromAPIKey(apiKey, apiSecret);
+        console.log("auth 4")
+        console.log(user);
         const authToken = jwt.sign(user, JWT_SECRET, {expiresIn: "90m"});
+        console.log("auth 5", authToken)
         return res.status(200).json({authToken});
       } catch (error) {
         return res.status(401).send("API key or secret invalid");
@@ -88,8 +94,11 @@ async function decodeUserFromAPIKey(apiKey, apiSecret) {
   try {
     const filter = {key: apiKey, secret: apiSecret};
     const key = await db.collection('api_keys').findOne(filter);
+    console.log("key")
+    console.log(key)
     if (key) {
       const user = {userId: apiKey, userType: "api_key"};
+      console.log("user", user)
       return user;
     } else {
       throw new Error("API key or secret invalid");
