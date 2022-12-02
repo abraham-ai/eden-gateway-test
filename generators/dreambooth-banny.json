@@ -1,0 +1,9 @@
+{
+  "prompt": "hello world",
+  "seed": 13,
+  "width": 512,
+  "height": 512,
+  "num_outputs": 1,
+  "num_inference_steps": 50,
+  "guidance_scale": 8.0
+}

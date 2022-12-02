@@ -24,6 +24,10 @@ export const generators = {
     cog: "abraham-ai/eden-stable-diffusion",
     configFile: "./generators/stable-diffusion.json",
     edenUrl: EDEN_STABLE_DIFFUSION_URL
+  },
+  'dreambooth-banny': {
+    cog: "genekogan/banny2",
+    configFile: "./generators/dreambooth-banny.json"
   }
 }
 

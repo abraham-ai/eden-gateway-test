@@ -66,6 +66,8 @@ function getCost(generator_name, config) {
     }
   } else if (generator_name == 'clipx') {
     cost = 1;
+  } else if (generator_name == 'dreambooth-banny') {
+    cost = 1;
   }
   return cost;
 }
@@ -89,6 +91,13 @@ async function handleFetchRequest(req, res) {
 async function handleGeneratorRequest(req, res) {
   const {generator_name, config, application, metadata} = req.body;
   const userCredentials = auth.identifyUser(req);
+  
+  console.log("received request")
+  console.log(generator_name);
+  console.log(config);
+  console.log(application);
+  console.log(metadata);
+  console.log("-----------------------------------")
   
   // get user entry in credits collection
   let user = await db.collection('users').findOne(userCredentials);
@@ -155,7 +164,7 @@ async function handleGeneratorRequest(req, res) {
     metadata: metadata
   }  
 
-  if (application == "eden.art") {
+  if (application == "abraham") {
     application_data.stats = {
       praise_count: 0, burn_count: 0, praise_addresses: [''], burn_addresses: ['']
     }
@@ -180,6 +189,7 @@ async function handleGeneratorRequest(req, res) {
 
 
 const app = express();
+
 app.use(cors());
 app.use(express.json({limit: '50mb'}));
 app.use(express.urlencoded({limit: '50mb'}));

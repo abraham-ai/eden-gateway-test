@@ -18,11 +18,11 @@ export function writeFile(filename, content) {
       return console.log(err);
     }
   });
-}; 
+}
 
 export function writeJsonToFile(filename, text) {
   writeFile(filename, JSON.stringify(text));
-}; 
+} 
 
 export function getFileType(filename) {
   let fileType = path.extname(filename).slice(1).toLowerCase();
@@ -39,7 +39,6 @@ export function getAllPropertiesValid(obj_canonical, obj) {
     return true;
   }
 }
-
 
 export function sha256(data) {
   const hashSum = crypto.createHash('sha256');

@@ -28,6 +28,7 @@
   "mask_brightness_adjust": 1.0, 
   "mask_contrast_adjust": 1.0, 
   "text_input": "hello world", 
+  "uc_text": "", 
   "seed": 13, 
   "n_samples": 1, 
   "interpolation_texts": [],
