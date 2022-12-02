@@ -184,6 +184,9 @@ async function handleGeneratorRequest(req, res) {
     $set: {balance: user.balance - cost}
   });
   
+  console.log(`request submitted ${task.id}`);
+  console.log("===================================")
+  
   return res.status(200).send(task.id);
 }
 

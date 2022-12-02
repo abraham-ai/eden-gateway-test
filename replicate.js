@@ -95,6 +95,7 @@ export async function receiveGeneratorUpdate(req, res) {
     const fileType = utils.getFileType(url);
     const assetType = (fileType == "mp4") ? `video/${fileType}` : `image/${fileType}`;
     const metadata = {'Content-Type': assetType, 'SHA': sha};
+    console.log(` --> Uploading ${url} to ${MINIO_BUCKET}/${sha}`);
     await minio.putObject(MINIO_BUCKET, sha, assetB64, metadata);
     newShas.push(sha);
   }
@@ -120,6 +121,9 @@ export async function receiveGeneratorUpdate(req, res) {
 
 
 export function getProgress(input, output) {
+  if (!output) {
+    return 0;
+  }
   if (input.mode == 'generate' || input.mode == 'remix') {
     const nFrames = 1 + Math.floor(input.steps / input.stream_every);
     const progress = output.length / nFrames;
