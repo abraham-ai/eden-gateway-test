@@ -90,7 +90,7 @@ async function handleFetchRequest(req, res) {
 
 async function handleGeneratorRequest(req, res) {
   const {generator_name, config, application, metadata} = req.body;
-  const userCredentials = auth.identifyUser(req);
+  const userCredentials = await auth.identifyUser(req);
   
   console.log("received request")
   console.log(generator_name);

@@ -12,7 +12,6 @@ export const MINIO_SECRET_KEY = process.env.MINIO_SECRET_KEY;
 
 export const REPLICATE_API_TOKEN = process.env.REPLICATE_API_TOKEN;
 export const ETHERSCAN_API_KEY = process.env.ETHERSCAN_API_KEY;
-
 export const EDEN_STABLE_DIFFUSION_URL = process.env.EDEN_STABLE_DIFFUSION_URL;
 
 export const generators = {
