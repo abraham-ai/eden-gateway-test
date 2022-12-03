@@ -26,7 +26,7 @@ export const generators = {
     edenUrl: EDEN_STABLE_DIFFUSION_URL
   },
   'dreambooth-banny': {
-    cog: "genekogan/banny2",
+    cog: "genekogan/banny7",
     configFile: "./generators/dreambooth-banny.json"
   }
 }
