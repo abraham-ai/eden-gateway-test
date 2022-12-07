@@ -29,11 +29,11 @@ export const generators = {
     configFile: "./generators/dreambooth-replicate.json"
   },
   'dreambooth-anni': {
-    cog: "genekogan/dreambooth_anni",
+    cog: "genekogan/dreambooth_anni5",
     configFile: "./generators/dreambooth-replicate.json"
   },
   'dreambooth-mattk': {
-    cog: "genekogan/dreambooth_mattk",
+    cog: "genekogan/dreambooth_mattk3",
     configFile: "./generators/dreambooth-replicate.json"
   },
   'dreambooth-vanessa': {
@@ -41,4 +41,3 @@ export const generators = {
     configFile: "./generators/dreambooth-replicate.json"
   }
 }
-
