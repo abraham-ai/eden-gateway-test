@@ -66,7 +66,7 @@ function getCost(generator_name, config) {
     }
   } else if (generator_name == 'clipx') {
     cost = 1;
-  } else if (generator_name == 'dreambooth-banny') {
+  } else if (generator_name.includes('dreambooth')) {
     cost = 1;
   }
   return cost;
@@ -80,7 +80,7 @@ async function handleFetchRequest(req, res) {
     filter["generator.task_id"] = {$in: taskIds};
   }
   if (userIds) {
-    let userIds_ = await db.collection('users').find({"userId": {$in: userIds}}).toArray().map((user) => user._id);
+    let userIds_ = Array.from(await db.collection('users').find({"userId": {$in: userIds}}).toArray()).map((user) => user._id);
     filter["user"] = {$in: userIds_};
   }
   const requests = await db.collection('requests').find(filter).toArray();
@@ -205,6 +205,8 @@ app.post("/model_update_eden", eden.receiveGeneratorUpdate);
 
 app.post("/sign_in", auth.requestAuthToken);
 app.post("/is_auth", auth.isAuthenticated);
+
+app.post("/create_key", auth.authenticate, auth.createNewAPIKey);
 
 app.post("/get_collections", collections.handleGetCollectionsRequest);
 app.post("/create_collection", auth.authenticate, collections.handleCreateCollectionRequest);

@@ -1,8 +1,8 @@
 import ethers from "ethers";
 import jwt from "jsonwebtoken";
+import {randomUUID} from "crypto";
 import {JWT_SECRET} from "./constants.js"
 import {db} from "./db.js"
-
 
 export async function requestAuthToken(req, res) {
   const {message, signature, userId, userType, apiKey, apiSecret} = req.body;
@@ -101,7 +101,7 @@ async function decodeUserFromAPIKey(apiKey, apiSecret) {
 
 
 export async function createNewAPIKey(req, res) {
-  const {note, balance} = req.body;
+  /*const {note, balance} = req.body;
   try {
     let userId = randomUUID();
     let userSecret = randomUUID();
@@ -114,5 +114,6 @@ export async function createNewAPIKey(req, res) {
     return res.status(200).send({key: userId, secret: userSecret});
   } catch (error) {
     return res.status(500).send("Error creating new key: "+error.message);    
-  }
+  }*/
+  return res.status(500).send("Error creating new key: disabled");
 }

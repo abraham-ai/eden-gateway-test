@@ -3,9 +3,9 @@ import dotenv from 'dotenv'
 
 dotenv.config()
 
-const GATEWAY_URL = process.env.GATEWAY_URL;
-const MINIO_URL = process.env.MINIO_URL;
-const MINIO_BUCKET = process.env.MINIO_BUCKET;
+const GATEWAY_URL = "https://gateway-test.abraham.ai"
+const MINIO_URL = "https://minio.aws.abraham.fun"
+const MINIO_BUCKET = "creations-stg"
 
 // two ways to authenticate:
 

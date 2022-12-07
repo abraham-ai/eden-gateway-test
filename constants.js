@@ -26,7 +26,19 @@ export const generators = {
   },
   'dreambooth-banny': {
     cog: "genekogan/banny7",
-    configFile: "./generators/dreambooth-banny.json"
+    configFile: "./generators/dreambooth-replicate.json"
+  },
+  'dreambooth-anni': {
+    cog: "genekogan/dreambooth_anni",
+    configFile: "./generators/dreambooth-replicate.json"
+  },
+  'dreambooth-mattk': {
+    cog: "genekogan/dreambooth_mattk",
+    configFile: "./generators/dreambooth-replicate.json"
+  },
+  'dreambooth-vanessa': {
+    cog: "genekogan/vanessa",
+    configFile: "./generators/dreambooth-replicate.json"
   }
 }
 
