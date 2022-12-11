@@ -66,6 +66,8 @@ function getCost(generator_name, config) {
     }
   } else if (generator_name == 'clipx') {
     cost = 1;
+  } else if (generator_name == 'oracle') {
+    cost = 1;
   } else if (generator_name.includes('dreambooth')) {
     cost = 1;
   }

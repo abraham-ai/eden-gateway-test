@@ -16,13 +16,17 @@ export const EDEN_STABLE_DIFFUSION_URL = process.env.EDEN_STABLE_DIFFUSION_URL;
 
 export const generators = {
   'clipx': {
-    cog: "abraham-ai/clipx",
+    cog: "abraham-ai/eden-clipx",
     configFile: "./generators/clipx.json"
   },
   'stable-diffusion': {
     cog: "abraham-ai/eden-stable-diffusion",
     configFile: "./generators/stable-diffusion.json",
     edenUrl: EDEN_STABLE_DIFFUSION_URL
+  },
+  'oracle': {
+    cog: "abraham-ai/oracle",
+    configFile: "./generators/oracle.json"
   },
   'dreambooth-banny': {
     cog: "genekogan/banny7",

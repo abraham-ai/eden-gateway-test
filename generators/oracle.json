@@ -1,0 +1,10 @@
+{
+  "question": "",
+  "face": "data/oracle.jpg",
+  "voice_embedding": "data/rivka_embedding.pkl",
+  "length_scale": 1.4,
+  "inference_noise_scale": 0.3,
+  "inference_noise_scale_dp": 0.3,
+  "language_id": 0,
+  "use_griffin_lim": true
+}
