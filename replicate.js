@@ -42,6 +42,8 @@ export async function submit(generator, config) {
 export async function receiveGeneratorUpdate(req, res) {
   const {completed_at, id, status, input, output} = req.body;
 
+  console.log(`Received update from Replicate for task ${id}: status ${status}`);
+
   // get the original request
   const request = await db.collection('requests').findOne({"generator.task_id": id});
   if (!request) {
