@@ -53,7 +53,7 @@ export async function receiveGeneratorUpdate(req, res) {
   // verify sender
   const webhookSecret = url.parse(req.url, true).query.secret;
   if (webhookSecret != request.generator.secret) {
-    return res.status(500).send("Wrong secret token");
+    return res.status(500).send("Wrong webhook secret token");
   }
 
   // handle failures
@@ -89,7 +89,8 @@ export async function receiveGeneratorUpdate(req, res) {
 
   // give a list of all elements in output that don't exist in intermediate_outputs_replicate
   const newShas = [];
-  const newOutputs = output.filter(o => !request.intermediate_outputs_replicate.includes(o));
+  const outputReplicate = output instanceof Array ? output : [output];
+  const newOutputs = outputReplicate.filter(o => !request.intermediate_outputs_replicate.includes(o));
   for (const url of newOutputs) {
     const asset = await axios.get(url, {responseType: 'arraybuffer'});
     const assetB64 = Buffer.from(asset.data, "base64");
@@ -103,7 +104,11 @@ export async function receiveGeneratorUpdate(req, res) {
   }
 
   if (status == 'processing') {
-    const update = {status: 'running', progress: getProgress(input, output), intermediate_outputs_replicate: output};
+    const update = {
+      status: 'running', 
+      progress: getProgress(input, outputReplicate),
+      intermediate_outputs_replicate: outputReplicate
+    };
     const push = {intermediate_outputs: {$each: newShas}};
     await db.collection('requests').updateOne({_id: request._id}, {
       $set: update, $push: push
