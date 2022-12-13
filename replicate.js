@@ -114,12 +114,17 @@ export async function receiveGeneratorUpdate(req, res) {
       $set: update, $push: push
     });
   } 
-  else if (status == 'succeeded') {
-    const finalSha = newShas.slice(-1)[0];
+  else if (status == 'succeeded') {    
+    if (newShas.length > 0) {
+      var finalSha = newShas.slice(-1)[0];
+    } else {
+      // sometimes Replicate returns final output before status is "succeeded"
+      var finalSha = request.intermediate_outputs.slice(-1)[0];
+    }
     const update = {status: 'complete', progress: 1.0, output: finalSha}
     const deletion = {intermediate_outputs_replicate: 1};
     await db.collection('requests').updateOne({_id: request._id}, {
-      $set: update, $unset: deletion
+      $set: update, $unset: deletion  
     });        
   } 
   
