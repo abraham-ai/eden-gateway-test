@@ -59,6 +59,16 @@ export async function authenticate(req, res, next) {
 }
 
 
+export async function authenticateAdmin(req, res, next) {
+  try {
+    await verifyAdmin(req);
+    return next();
+  } catch (error) {
+    return res.status(401).send(error.message);
+  }
+}
+
+
 export async function identifyUser(req) {
   const {token, apiKey, apiSecret} = req.body;
   if (apiKey && apiSecret && !token) {
@@ -72,6 +82,17 @@ export async function identifyUser(req) {
   }
 }
 
+export async function verifyAdmin(req) {
+  const {adminKey, adminSecret} = req.body;
+  const filter = {key: adminKey, secret: adminSecret, admin: true};
+  const key = await db.collection('api_keys').findOne(filter);
+  if (key) {
+    const user = {userId: adminKey, userType: "api_key"};
+    return user;
+  } else {
+    throw new Error("Admin key or secret invalid");
+  }
+}
 
 function decodeUserFromToken(token) {
   try {
@@ -101,7 +122,7 @@ async function decodeUserFromAPIKey(apiKey, apiSecret) {
 
 
 export async function createNewAPIKey(req, res) {
-  /*const {note, balance} = req.body;
+  const {note, balance} = req.body;
   try {
     let userId = randomUUID();
     let userSecret = randomUUID();
@@ -114,6 +135,32 @@ export async function createNewAPIKey(req, res) {
     return res.status(200).send({key: userId, secret: userSecret});
   } catch (error) {
     return res.status(500).send("Error creating new key: "+error.message);    
-  }*/
-  return res.status(500).send("Error creating new key: disabled");
+  }
+}
+
+export async function addCredits(req, res) {
+  const {userType, userId, credits} = req.body;
+  try {
+    let user = await db.collection('users').findOne({
+      userType: userType, userId: userId
+    });
+    if (!user) {
+      user = await db.collection('users').insertOne({
+        userId: userId,
+        userType: userType,
+        balance: credits
+      });
+      return res.status(200).send({balance: credits});
+    }
+    else {
+      await db.collection('users').updateOne(
+        {_id: user._id}, 
+        {$inc: {balance: credits}}
+      );
+      return res.status(200).send({balance: user.balance + credits});
+    }
+  } catch (error) {
+    console.log(error)
+    return res.status(500).send("Error adding balance: "+error.message);    
+  }
 }

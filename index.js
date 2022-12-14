@@ -121,7 +121,7 @@ async function handleGeneratorRequest(req, res) {
     const newUser = await db.collection('users').insertOne({
       userId: userCredentials.userId,
       userType: userCredentials.userType,
-      balance: 100
+      balance: 10
     });
 
     user = await db.collection('users').findOne(newUser.insertedId);
@@ -208,7 +208,8 @@ app.post("/model_update_eden", eden.receiveGeneratorUpdate);
 app.post("/sign_in", auth.requestAuthToken);
 app.post("/is_auth", auth.isAuthenticated);
 
-app.post("/create_key", auth.authenticate, auth.createNewAPIKey);
+app.post("/create_key", auth.authenticateAdmin, auth.createNewAPIKey);
+app.post("/add_credits", auth.authenticateAdmin, auth.addCredits);
 
 app.post("/get_collections", collections.handleGetCollectionsRequest);
 app.post("/create_collection", auth.authenticate, collections.handleCreateCollectionRequest);
