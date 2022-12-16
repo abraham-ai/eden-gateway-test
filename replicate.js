@@ -18,7 +18,7 @@ export async function submit(generator, config) {
   const webhookUrl = `${SERVER_URL}/model_update_replicate?secret=${webhookSecret}`;
   
   const model = await replicate.getModel(generator.cog);
-  const modelVersion = model.results[0].id;
+  const modelVersion = "9f5dbdb4adf7a4b568b760358a1b508af63204a1340667267cc616ecddaf63e3"; // model.results[0].id;
 
   const task = await replicate.startPrediction(
     modelVersion, 
