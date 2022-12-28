@@ -41,6 +41,7 @@
   "interpolation_init_images_max_strength": 0.95,
   "n_frames": 1, 
   "scale_modulation": 0.2,
+  "latent_smoothing_std": 0.015,
   "loop": false, 
   "smooth": false, 
   "n_film": 0,
